@@ -1,18 +1,28 @@
-import 'dart:ui';
-
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:pet_adoption_app/models/pet_model.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pet_adoption_app/providers/pet_provider.dart';
 import 'package:provider/provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Pits Adoption'),
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.add),
+        onPressed: () {
+          context.push('/add');
+        },
       ),
       body: context.watch<PetProvider>().isLoading
           ? Center(
@@ -23,51 +33,92 @@ class HomeScreen extends StatelessWidget {
                 context.watch<PetProvider>().loadPets();
               },
               child: GridView.builder(
+                shrinkWrap: false,
                 padding: EdgeInsets.all(8),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisSpacing: 10,
                   crossAxisSpacing: 10,
+                  childAspectRatio: 1 / 1.7,
                 ),
                 itemCount: context.watch<PetProvider>().pets.length,
                 itemBuilder: (BuildContext context, int index) {
                   var petProvider = context.watch<PetProvider>();
                   var pet = petProvider.pets[index];
                   var genderIcon;
-                  var adopted;
+
                   if (pet.gender == 'female') {
                     genderIcon = Icon(Icons.female);
                   } else {
                     genderIcon = Icon(Icons.male);
                   }
-                  if (pet.adopted) {
-                    adopted = GridTileBar(
-                      backgroundColor: Colors.white54,
-                      title: Text(
-                        'Adopted',
-                        style: TextStyle(color: Colors.black),
-                      ),
-                    );
-                  } else {
-                    adopted = null;
-                  }
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: GridTile(
-                      header: adopted,
-                      footer: GridTileBar(
-                        title: Text(
-                          pet.name,
+                  return Column(
+                    // mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: GridTile(
+                              footer: Container(
+                                height: 45,
+                                child: GridTileBar(
+                                  title: Text(
+                                    pet.name,
+                                  ),
+                                  subtitle: Text('Age: ${pet.age}'),
+                                  trailing: genderIcon,
+                                  backgroundColor: Colors.black45,
+                                ),
+                              ),
+                              child: Image.network(
+                                pet.image,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
                         ),
-                        subtitle: Text('Age: ${pet.age}'),
-                        trailing: genderIcon,
-                        backgroundColor: Colors.black45,
                       ),
-                      child: Image.network(
-                        pet.image,
-                        fit: BoxFit.cover,
+                      // if (!pet.adopted)
+                      //   ElevatedButton(
+                      //       onPressed: () {
+                      //         setState(() {
+                      //           context.read<PetProvider>().patchPet(
+                      //                 pet: pet,
+                      //                 adopted: true,
+                      //               );
+                      //         });
+                      //       },
+                      //       child: Text("Adopt")),
+
+                      ElevatedButton(
+                        onPressed: pet.adopted
+                            ? null
+                            : () {
+                                setState(() {
+                                  context.read<PetProvider>().patchPet(
+                                        pet: pet,
+                                        adopted: true,
+                                      );
+                                });
+                              },
+                        child: pet.adopted ? Text("Adopted") : Text('Adopt'),
                       ),
-                    ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton(
+                              onPressed: () {
+                                context.push('/edit', extra: pet);
+                              },
+                              child: Icon(Icons.edit)),
+                          ElevatedButton(
+                              onPressed: () =>
+                                  context.read<PetProvider>().deletePet(pet.id),
+                              child: Icon(Icons.delete)),
+                        ],
+                      ),
+                    ],
                   );
                 },
               ),
